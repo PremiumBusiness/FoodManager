@@ -1,0 +1,981 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Home, BookOpen, Heart, Calendar, ShoppingCart, Plus, 
+  Search, Clock, Users, ChefHat, Trash2, Edit2, 
+  Check, ChevronRight, Menu, X, Filter
+} from 'lucide-react';
+
+// --- Mock Data ---
+const initialRecipes = [
+  {
+    id: '1',
+    title: 'פסטה ברוטב עגבניות ובזיליקום',
+    description: 'פסטה קלאסית ומהירה שכל משפחה אוהבת.',
+    category: 'עיקרית',
+    servings: 4,
+    prepTime: 10,
+    cookTime: 20,
+    difficulty: 'קל',
+    imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&q=80&w=800',
+    ingredients: [
+      { name: 'פסטה (פנה או ספגטי)', amount: 500, unit: 'גרם' },
+      { name: 'עגבניות מרוסקות', amount: 400, unit: 'גרם' },
+      { name: 'שום', amount: 3, unit: 'שיניים' },
+      { name: 'שמן זית', amount: 3, unit: 'כפות' },
+      { name: 'בזיליקום טרי', amount: 1, unit: 'חופן' },
+      { name: 'מלח', amount: 1, unit: 'כפית' }
+    ],
+    instructions: [
+      'מרתיחים סיר גדול עם מים ומלח. מבשלים את הפסטה לפי הוראות היצרן.',
+      'במקביל, מחממים שמן זית במחבת גדולה ומוסיפים שום קצוץ לטיגון קצר (לא להשחים).',
+      'מוסיפים את העגבניות המרוסקות, מלח ופלפל. מביאים לרתיחה ומבשלים על אש קטנה כ-15 דקות.',
+      'מסננים את הפסטה ומוסיפים לרוטב. מערבבים היטב.',
+      'מכבים את האש, קורעים את עלי הבזיליקום ומוסיפים פנימה. מגישים חם.'
+    ],
+    tags: ['טבעוני', 'מהיר', 'ילדים']
+  },
+  {
+    id: '2',
+    title: 'עוגת שוקולד בחושה',
+    description: 'עוגת שוקולד רכה, עסיסית וקלה להכנה בקערה אחת.',
+    category: 'קינוח',
+    servings: 8,
+    prepTime: 15,
+    cookTime: 40,
+    difficulty: 'קל',
+    imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&q=80&w=800',
+    ingredients: [
+      { name: 'קמח', amount: 2, unit: 'כוסות' },
+      { name: 'סוכר', amount: 1.5, unit: 'כוסות' },
+      { name: 'קקאו', amount: 0.5, unit: 'כוסות' },
+      { name: 'אבקת אפייה', amount: 1, unit: 'שקית' },
+      { name: 'שמן', amount: 1, unit: 'כוס' },
+      { name: 'ביצים', amount: 4, unit: 'יחידות' },
+      { name: 'מים רותחים', amount: 1, unit: 'כוס' }
+    ],
+    instructions: [
+      'מחממים תנור ל-170 מעלות ומשמנים תבנית אפייה.',
+      'בקערה גדולה מערבבים את כל החומרים היבשים: קמח, סוכר, קקאו ואבקת אפייה.',
+      'מוסיפים את השמן והביצים ומערבבים היטב.',
+      'מוסיפים את המים הרותחים בזרם דק תוך כדי ערבוב עד לקבלת בלילה חלקה.',
+      'יוצקים לתבנית ואופים כ-40 דקות עד שקיסם ננעץ ויוצא עם פירורים לחים.'
+    ],
+    tags: ['פרווה', 'ילדים']
+  }
+];
+
+const categories = ['ארוחת בוקר', 'עיקרית', 'תוספת', 'קינוח', 'סלט', 'מרק', 'מאפה', 'שתייה'];
+const difficulties = ['קל', 'בינוני', 'מתקדם'];
+
+const RecipeDetails = ({ recipe, isFav, onToggleFavorite, onEdit, onDelete, onAddToCart }) => {
+  const [currentServings, setCurrentServings] = useState(recipe.servings);
+
+  return (
+    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-4">
+      {/* Header Image */}
+      <div className="h-64 md:h-96 w-full relative">
+        <img src={recipe.imageUrl || 'https://images.unsplash.com/photo-1495195134817-a1a28078aca9?auto=format&fit=crop&q=80&w=800'} alt={recipe.title} className="w-full h-full object-cover" />
+        <div className="absolute top-4 left-4 flex space-x-2 space-x-reverse">
+           <button onClick={onToggleFavorite} className={`p-3 rounded-full shadow-lg transition ${isFav ? 'bg-red-50 text-red-500' : 'bg-white text-stone-400 hover:text-red-500'}`}>
+             <Heart size={24} fill={isFav ? "currentColor" : "none"} />
+           </button>
+           <button onClick={onEdit} className="p-3 bg-white text-stone-700 rounded-full shadow-lg hover:text-blue-600 transition">
+             <Edit2 size={24} />
+           </button>
+           <button onClick={onDelete} className="p-3 bg-white text-stone-700 rounded-full shadow-lg hover:text-red-600 transition">
+             <Trash2 size={24} />
+           </button>
+        </div>
+        <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-6 text-white">
+          <span className="bg-orange-500 text-xs font-bold px-2 py-1 rounded mb-2 inline-block">{recipe.category}</span>
+          <h1 className="text-3xl md:text-5xl font-bold">{recipe.title}</h1>
+        </div>
+      </div>
+
+      <div className="p-6 md:p-8 space-y-8">
+        <p className="text-lg text-stone-600">{recipe.description}</p>
+
+        {/* Meta Info */}
+        <div className="flex flex-wrap gap-4 py-4 border-y border-stone-200">
+          <MetaItem icon={<Clock />} label="הכנה" value={`${recipe.prepTime} דק'`} />
+          <MetaItem icon={<ChefHat />} label="בישול" value={`${recipe.cookTime} דק'`} />
+          <MetaItem icon={<Users />} label="מנות" value={recipe.servings} />
+          <MetaItem icon={<BookOpen />} label="קושי" value={recipe.difficulty} />
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Ingredients */}
+          <div className="md:col-span-1 bg-stone-50 p-6 rounded-xl border border-stone-100">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-stone-800">מרכיבים</h2>
+            </div>
+            
+            {/* Servings Adjuster */}
+            <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-stone-200 mb-6 shadow-sm">
+               <button onClick={() => setCurrentServings(Math.max(1, currentServings - 1))} className="w-8 h-8 flex items-center justify-center rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600">-</button>
+               <span className="font-bold text-stone-800">{currentServings} מנות</span>
+               <button onClick={() => setCurrentServings(currentServings + 1)} className="w-8 h-8 flex items-center justify-center rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600">+</button>
+            </div>
+
+            <ul className="space-y-3">
+              {recipe.ingredients.map((ing, idx) => {
+                const adjustedAmount = (ing.amount / recipe.servings) * currentServings;
+                const displayAmount = adjustedAmount % 1 !== 0 ? adjustedAmount.toFixed(1) : adjustedAmount;
+                return (
+                  <li key={idx} className="flex justify-between items-center border-b border-stone-200 pb-2 last:border-0">
+                    <span className="text-stone-800">{ing.name}</span>
+                    <span className="text-stone-600 font-medium font-sans" dir="ltr">{displayAmount} {ing.unit}</span>
+                  </li>
+                )
+              })}
+            </ul>
+
+            <button 
+              onClick={() => {
+                const adjustedIngs = recipe.ingredients.map(ing => ({
+                  ...ing,
+                  amount: (ing.amount / recipe.servings) * currentServings
+                }));
+                onAddToCart(adjustedIngs);
+              }}
+              className="w-full mt-6 bg-lime-100 text-lime-800 py-3 rounded-lg font-bold hover:bg-lime-200 transition flex items-center justify-center"
+            >
+              <ShoppingCart size={20} className="ml-2" /> הוסף לרשימת קניות
+            </button>
+          </div>
+
+          {/* Instructions */}
+          <div className="md:col-span-2 space-y-6">
+            <h2 className="text-2xl font-bold text-stone-800">אופן ההכנה</h2>
+            <div className="space-y-4">
+              {recipe.instructions.map((step, idx) => (
+                <div key={idx} className="flex gap-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 bg-lime-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {idx + 1}
+                  </div>
+                  <p className="text-stone-700 leading-relaxed pt-1 group-hover:text-stone-900 transition">{step}</p>
+                </div>
+              ))}
+            </div>
+
+            {recipe.tags && recipe.tags.length > 0 && (
+              <div className="pt-8 border-t border-stone-200">
+                <div className="flex flex-wrap gap-2">
+                  {recipe.tags.map(tag => (
+                    <span key={tag} className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-sm">#{tag}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RecipeForm = ({ existingRecipe, categories, difficulties, onSave, onCancel }) => {
+  const [formData, setFormData] = useState(existingRecipe || {
+    title: '', description: '', category: categories[0], servings: 4, prepTime: 10, cookTime: 20, difficulty: difficulties[0], imageUrl: '',
+    ingredients: [{ name: '', amount: 1, unit: 'יחידות' }],
+    instructions: ['']
+  });
+
+  const handleChange = (e) => setFormData({...formData, [e.target.name]: e.target.value});
+  
+  const handleIngredientChange = (index, field, value) => {
+    const newIngs = [...formData.ingredients];
+    newIngs[index][field] = value;
+    setFormData({...formData, ingredients: newIngs});
+  };
+  
+  const handleInstructionChange = (index, value) => {
+    const newInst = [...formData.instructions];
+    newInst[index] = value;
+    setFormData({...formData, instructions: newInst});
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.title || formData.ingredients.length === 0 || formData.instructions.length === 0) {
+      alert("יש למלא שם, מרכיבים והוראות הכנה."); return;
+    }
+    const cleanedData = {
+      ...formData,
+      ingredients: formData.ingredients.filter(i => i.name.trim() !== ''),
+      instructions: formData.instructions.filter(i => i.trim() !== '')
+    };
+    onSave(cleanedData);
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6 md:p-8 animate-in fade-in">
+      <h1 className="text-3xl font-bold mb-8 text-stone-800">{existingRecipe ? 'עריכת מתכון' : 'מתכון חדש'}</h1>
+      
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* General Info */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-lime-800 border-b pb-2">פרטים כלליים</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-stone-700 mb-1">שם המתכון *</label>
+              <input type="text" name="title" value={formData.title} onChange={handleChange} required className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-transparent" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-stone-700 mb-1">תיאור קצר</label>
+              <textarea name="description" value={formData.description} onChange={handleChange} rows="2" className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500"></textarea>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">קטגוריה</label>
+              <select name="category" value={formData.category} onChange={handleChange} className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500">
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">מספר מנות</label>
+              <input type="number" name="servings" value={formData.servings} onChange={handleChange} min="1" className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">זמן הכנה (דקות)</label>
+              <input type="number" name="prepTime" value={formData.prepTime} onChange={handleChange} min="0" className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">זמן בישול (דקות)</label>
+              <input type="number" name="cookTime" value={formData.cookTime} onChange={handleChange} min="0" className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">רמת קושי</label>
+              <select name="difficulty" value={formData.difficulty} onChange={handleChange} className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500">
+                {difficulties.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">קישור לתמונה (URL)</label>
+              <input type="url" name="imageUrl" value={formData.imageUrl} onChange={handleChange} className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500 text-left" dir="ltr" placeholder="https://..." />
+            </div>
+          </div>
+        </div>
+
+        {/* Ingredients */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-lime-800 border-b pb-2">מרכיבים</h2>
+          {formData.ingredients.map((ing, idx) => (
+            <div key={idx} className="flex gap-2 items-center">
+              <input type="text" placeholder="שם מרכיב" value={ing.name} onChange={(e) => handleIngredientChange(idx, 'name', e.target.value)} className="flex-1 p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+              <input type="number" step="0.1" placeholder="כמות" value={ing.amount} onChange={(e) => handleIngredientChange(idx, 'amount', e.target.value)} className="w-24 p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+              <input type="text" placeholder="יחידה" value={ing.unit} onChange={(e) => handleIngredientChange(idx, 'unit', e.target.value)} className="w-28 p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" list="units" />
+              <button type="button" onClick={() => setFormData({...formData, ingredients: formData.ingredients.filter((_, i) => i !== idx)})} className="p-3 text-red-500 hover:bg-red-50 rounded-lg">
+                <Trash2 size={20} />
+              </button>
+            </div>
+          ))}
+          <datalist id="units">
+            <option value="גרם" />
+            <option value="ק״ג" />
+            <option value="מ״ל" />
+            <option value="ליטר" />
+            <option value="כוסות" />
+            <option value="כפות" />
+            <option value="כפיות" />
+            <option value="יחידות" />
+          </datalist>
+          <button type="button" onClick={() => setFormData({...formData, ingredients: [...formData.ingredients, {name: '', amount: 1, unit: 'יחידות'}]})} className="text-lime-600 font-medium hover:underline flex items-center">
+            <Plus size={16} className="ml-1" /> הוסף מרכיב
+          </button>
+        </div>
+
+        {/* Instructions */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-lime-800 border-b pb-2">אופן ההכנה</h2>
+          {formData.instructions.map((step, idx) => (
+            <div key={idx} className="flex gap-2 items-start">
+              <div className="mt-3 font-bold text-stone-400">{idx + 1}.</div>
+              <textarea rows="2" value={step} onChange={(e) => handleInstructionChange(idx, e.target.value)} className="flex-1 p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500"></textarea>
+              <button type="button" onClick={() => setFormData({...formData, instructions: formData.instructions.filter((_, i) => i !== idx)})} className="p-3 text-red-500 hover:bg-red-50 rounded-lg mt-1">
+                <Trash2 size={20} />
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={() => setFormData({...formData, instructions: [...formData.instructions, '']})} className="text-lime-600 font-medium hover:underline flex items-center">
+            <Plus size={16} className="ml-1" /> הוסף שלב
+          </button>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-4 pt-6 border-t border-stone-200">
+          <button type="submit" className="flex-1 bg-lime-600 text-white p-4 rounded-lg font-bold text-lg hover:bg-lime-700 transition">
+            שמור מתכון
+          </button>
+          <button type="button" onClick={onCancel} className="px-6 py-4 bg-stone-100 text-stone-700 rounded-lg font-bold hover:bg-stone-200 transition">
+            ביטול
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// --- Main App Component ---
+export default function App() {
+  const [currentView, setCurrentView] = useState('home'); // home, recipes, details, form, favorites, planner, shopping
+  const [recipes, setRecipes] = useState(initialRecipes);
+  const [selectedRecipeId, setSelectedRecipeId] = useState(null);
+  const [favorites, setFavorites] = useState(['1']); // Array of recipe IDs
+  const [shoppingList, setShoppingList] = useState([]);
+  const [mealPlan, setMealPlan] = useState({}); // { 'יום ראשון': [{ meal: 'ערב', recipeId: '1' }] }
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Helper functions
+  const navigate = (view, id = null) => {
+    setSelectedRecipeId(id);
+    setCurrentView(view);
+    setIsMobileMenuOpen(false);
+    window.scrollTo(0, 0);
+  };
+
+  const toggleFavorite = (id) => {
+    setFavorites(prev => 
+      prev.includes(id) ? prev.filter(fId => fId !== id) : [...prev, id]
+    );
+  };
+
+  const deleteRecipe = (id) => {
+    if (window.confirm('האם למחוק את המתכון? פעולה זו אינה ניתנת לביטול.')) {
+      setRecipes(prev => prev.filter(r => r.id !== id));
+      setFavorites(prev => prev.filter(fId => fId !== id));
+      if (currentView === 'details' && selectedRecipeId === id) {
+        navigate('recipes');
+      }
+    }
+  };
+
+  const addToShoppingList = (ingredients) => {
+    setShoppingList(prev => {
+      const newList = [...prev];
+      ingredients.forEach(ing => {
+        const existingItem = newList.find(item => item.name === ing.name && item.unit === ing.unit && !item.checked);
+        if (existingItem) {
+          existingItem.amount += ing.amount;
+        } else {
+          newList.push({ ...ing, id: Date.now() + Math.random(), checked: false });
+        }
+      });
+      return newList;
+    });
+    alert('המרכיבים נוספו לרשימת הקניות בהצלחה!');
+  };
+
+  const toggleShoppingItem = (id) => {
+    setShoppingList(prev => prev.map(item => 
+      item.id === id ? { ...item, checked: !item.checked } : item
+    ));
+  };
+
+  const removeShoppingItem = (id) => {
+    setShoppingList(prev => prev.filter(item => item.id !== id));
+  };
+
+  const saveRecipe = (recipeData) => {
+    if (recipeData.id) {
+      setRecipes(prev => prev.map(r => r.id === recipeData.id ? recipeData : r));
+    } else {
+      setRecipes(prev => [{ ...recipeData, id: Date.now().toString() }, ...prev]);
+    }
+    navigate('recipes');
+  };
+
+  // --- Views ---
+
+  const renderDashboard = () => (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="bg-lime-800 text-white p-8 rounded-2xl shadow-lg relative overflow-hidden">
+        <div className="relative z-10">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">מה נבשל היום?</h1>
+          <div className="flex bg-white rounded-lg overflow-hidden shadow-md max-w-xl">
+            <input 
+              type="text" 
+              placeholder="חיפוש מתכון, מרכיב או קטגוריה..." 
+              className="w-full p-4 text-stone-800 focus:outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if(e.key === 'Enter') navigate('recipes'); }}
+            />
+            <button onClick={() => navigate('recipes')} className="bg-orange-500 text-white p-4 hover:bg-orange-600 transition">
+              <Search size={24} />
+            </button>
+          </div>
+        </div>
+        <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+           <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" className="absolute -left-20 -top-20 w-96 h-96 fill-white"><path d="M42.8,-74.6C54.9,-67.5,63.6,-53.4,70.5,-39.3C77.4,-25.2,82.5,-11.1,80.7,2.2C78.9,15.5,70.2,28.1,60.6,38.5C51,48.9,40.5,57.1,28.5,64.2C16.5,71.3,3,77.3,-10.8,77.8C-24.6,78.3,-38.7,73.3,-50.2,65C-61.7,56.7,-70.6,45.1,-76.3,31.7C-82,18.3,-84.5,3.1,-81,-10.8C-77.5,-24.7,-68,-37.3,-56.3,-46.5C-44.6,-55.7,-30.7,-61.5,-17.1,-65.4C-3.5,-69.3,9.8,-71.3,23.3,-74.6C36.8,-77.9,50.5,-82.5,42.8,-74.6Z" transform="translate(200 200)" /></svg>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <QuickCard icon={<BookOpen />} title="כל המתכונים" count={recipes.length} onClick={() => navigate('recipes')} color="bg-blue-100 text-blue-700" />
+        <QuickCard icon={<Heart />} title="מועדפים" count={favorites.length} onClick={() => navigate('favorites')} color="bg-red-100 text-red-700" />
+        <QuickCard icon={<ShoppingCart />} title="רשימת קניות" count={shoppingList.filter(i=>!i.checked).length} onClick={() => navigate('shopping')} color="bg-green-100 text-green-700" />
+        <QuickCard icon={<Calendar />} title="תכנון שבועי" count={Object.keys(mealPlan).length} onClick={() => navigate('planner')} color="bg-purple-100 text-purple-700" />
+      </div>
+
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-stone-800">מתכונים אחרונים</h2>
+          <button onClick={() => navigate('recipes')} className="text-lime-700 font-medium hover:underline flex items-center">
+            הצג הכל <ChevronRight size={16} className="mr-1"/>
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {recipes.slice(0, 3).map(recipe => (
+             <RecipeCard key={recipe.id} recipe={recipe} isFavorite={favorites.includes(recipe.id)} onToggleFavorite={() => toggleFavorite(recipe.id)} onClick={() => navigate('details', recipe.id)} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderRecipeList = (filterFavorites = false) => {
+    const filteredRecipes = recipes.filter(r => {
+      if (filterFavorites && !favorites.includes(r.id)) return false;
+      if (searchQuery && !r.title.includes(searchQuery) && !r.category.includes(searchQuery)) return false;
+      return true;
+    });
+
+    return (
+      <div className="space-y-6 animate-in fade-in">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-stone-800">{filterFavorites ? 'המועדפים שלי' : 'כל המתכונים'}</h1>
+          <button onClick={() => navigate('form')} className="bg-lime-600 text-white px-4 py-2 rounded-lg hover:bg-lime-700 transition flex items-center shadow-sm">
+            <Plus size={20} className="ml-2" /> הוסף מתכון
+          </button>
+        </div>
+
+        {!filterFavorites && (
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+             <FilterChip label="הכל" active={!searchQuery} onClick={() => setSearchQuery('')} />
+             {categories.map(cat => (
+               <FilterChip key={cat} label={cat} active={searchQuery === cat} onClick={() => setSearchQuery(cat)} />
+             ))}
+          </div>
+        )}
+
+        {filteredRecipes.length === 0 ? (
+           <div className="text-center py-12 text-stone-500 bg-stone-100 rounded-xl border border-dashed border-stone-300">
+             <ChefHat size={48} className="mx-auto mb-4 opacity-50" />
+             <p className="text-lg">לא נמצאו מתכונים.</p>
+           </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredRecipes.map(recipe => (
+              <RecipeCard key={recipe.id} recipe={recipe} isFavorite={favorites.includes(recipe.id)} onToggleFavorite={() => toggleFavorite(recipe.id)} onClick={() => navigate('details', recipe.id)} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderRecipeDetails = () => {
+    const recipe = recipes.find(r => r.id === selectedRecipeId);
+    if (!recipe) return <div className="text-center">המתכון לא נמצא</div>;
+
+    const isFav = favorites.includes(recipe.id);
+    // Local state for servings adjustment
+    const [currentServings, setCurrentServings] = useState(recipe.servings);
+
+    return (
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-4">
+        {/* Header Image */}
+        <div className="h-64 md:h-96 w-full relative">
+          <img src={recipe.imageUrl || 'https://images.unsplash.com/photo-1495195134817-a1a28078aca9?auto=format&fit=crop&q=80&w=800'} alt={recipe.title} className="w-full h-full object-cover" />
+          <div className="absolute top-4 left-4 flex space-x-2 space-x-reverse">
+             <button onClick={() => toggleFavorite(recipe.id)} className={`p-3 rounded-full shadow-lg transition ${isFav ? 'bg-red-50 text-red-500' : 'bg-white text-stone-400 hover:text-red-500'}`}>
+               <Heart size={24} fill={isFav ? "currentColor" : "none"} />
+             </button>
+             <button onClick={() => navigate('form', recipe.id)} className="p-3 bg-white text-stone-700 rounded-full shadow-lg hover:text-blue-600 transition">
+               <Edit2 size={24} />
+             </button>
+             <button onClick={() => deleteRecipe(recipe.id)} className="p-3 bg-white text-stone-700 rounded-full shadow-lg hover:text-red-600 transition">
+               <Trash2 size={24} />
+             </button>
+          </div>
+          <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-6 text-white">
+            <span className="bg-orange-500 text-xs font-bold px-2 py-1 rounded mb-2 inline-block">{recipe.category}</span>
+            <h1 className="text-3xl md:text-5xl font-bold">{recipe.title}</h1>
+          </div>
+        </div>
+
+        <div className="p-6 md:p-8 space-y-8">
+          <p className="text-lg text-stone-600">{recipe.description}</p>
+
+          {/* Meta Info */}
+          <div className="flex flex-wrap gap-4 py-4 border-y border-stone-200">
+            <MetaItem icon={<Clock />} label="הכנה" value={`${recipe.prepTime} דק'`} />
+            <MetaItem icon={<ChefHat />} label="בישול" value={`${recipe.cookTime} דק'`} />
+            <MetaItem icon={<Users />} label="מנות" value={recipe.servings} />
+            <MetaItem icon={<BookOpen />} label="קושי" value={recipe.difficulty} />
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Ingredients */}
+            <div className="md:col-span-1 bg-stone-50 p-6 rounded-xl border border-stone-100">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-stone-800">מרכיבים</h2>
+              </div>
+              
+              {/* Servings Adjuster */}
+              <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-stone-200 mb-6 shadow-sm">
+                 <button onClick={() => setCurrentServings(Math.max(1, currentServings - 1))} className="w-8 h-8 flex items-center justify-center rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600">-</button>
+                 <span className="font-bold text-stone-800">{currentServings} מנות</span>
+                 <button onClick={() => setCurrentServings(currentServings + 1)} className="w-8 h-8 flex items-center justify-center rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600">+</button>
+              </div>
+
+              <ul className="space-y-3">
+                {recipe.ingredients.map((ing, idx) => {
+                  const adjustedAmount = (ing.amount / recipe.servings) * currentServings;
+                  const displayAmount = adjustedAmount % 1 !== 0 ? adjustedAmount.toFixed(1) : adjustedAmount;
+                  return (
+                    <li key={idx} className="flex justify-between items-center border-b border-stone-200 pb-2 last:border-0">
+                      <span className="text-stone-800">{ing.name}</span>
+                      <span className="text-stone-600 font-medium font-sans" dir="ltr">{displayAmount} {ing.unit}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+
+              <button 
+                onClick={() => {
+                  // Pass adjusted ingredients
+                  const adjustedIngs = recipe.ingredients.map(ing => ({
+                    ...ing,
+                    amount: (ing.amount / recipe.servings) * currentServings
+                  }));
+                  addToShoppingList(adjustedIngs);
+                }}
+                className="w-full mt-6 bg-lime-100 text-lime-800 py-3 rounded-lg font-bold hover:bg-lime-200 transition flex items-center justify-center"
+              >
+                <ShoppingCart size={20} className="ml-2" /> הוסף לרשימת קניות
+              </button>
+            </div>
+
+            {/* Instructions */}
+            <div className="md:col-span-2 space-y-6">
+              <h2 className="text-2xl font-bold text-stone-800">אופן ההכנה</h2>
+              <div className="space-y-4">
+                {recipe.instructions.map((step, idx) => (
+                  <div key={idx} className="flex gap-4 group">
+                    <div className="flex-shrink-0 w-8 h-8 bg-lime-600 text-white rounded-full flex items-center justify-center font-bold">
+                      {idx + 1}
+                    </div>
+                    <p className="text-stone-700 leading-relaxed pt-1 group-hover:text-stone-900 transition">{step}</p>
+                  </div>
+                ))}
+              </div>
+
+              {recipe.tags && recipe.tags.length > 0 && (
+                <div className="pt-8 border-t border-stone-200">
+                  <div className="flex flex-wrap gap-2">
+                    {recipe.tags.map(tag => (
+                      <span key={tag} className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-sm">#{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRecipeForm = () => {
+    const isEdit = !!selectedRecipeId;
+    const existingRecipe = isEdit ? recipes.find(r => r.id === selectedRecipeId) : null;
+    
+    // Form State
+    const [formData, setFormData] = useState(existingRecipe || {
+      title: '', description: '', category: categories[0], servings: 4, prepTime: 10, cookTime: 20, difficulty: difficulties[0], imageUrl: '',
+      ingredients: [{ name: '', amount: 1, unit: 'יחידות' }],
+      instructions: ['']
+    });
+
+    const handleChange = (e) => setFormData({...formData, [e.target.name]: e.target.value});
+    
+    const handleIngredientChange = (index, field, value) => {
+      const newIngs = [...formData.ingredients];
+      newIngs[index][field] = value;
+      setFormData({...formData, ingredients: newIngs});
+    };
+    
+    const handleInstructionChange = (index, value) => {
+      const newInst = [...formData.instructions];
+      newInst[index] = value;
+      setFormData({...formData, instructions: newInst});
+    };
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      // Basic validation
+      if (!formData.title || formData.ingredients.length === 0 || formData.instructions.length === 0) {
+        alert("יש למלא שם, מרכיבים והוראות הכנה."); return;
+      }
+      // Filter out empty ingredients/instructions
+      const cleanedData = {
+        ...formData,
+        ingredients: formData.ingredients.filter(i => i.name.trim() !== ''),
+        instructions: formData.instructions.filter(i => i.trim() !== '')
+      };
+      saveRecipe(cleanedData);
+    };
+
+    return (
+      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6 md:p-8 animate-in fade-in">
+        <h1 className="text-3xl font-bold mb-8 text-stone-800">{isEdit ? 'עריכת מתכון' : 'מתכון חדש'}</h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* General Info */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-lime-800 border-b pb-2">פרטים כלליים</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-stone-700 mb-1">שם המתכון *</label>
+                <input type="text" name="title" value={formData.title} onChange={handleChange} required className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-transparent" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-stone-700 mb-1">תיאור קצר</label>
+                <textarea name="description" value={formData.description} onChange={handleChange} rows="2" className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500"></textarea>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">קטגוריה</label>
+                <select name="category" value={formData.category} onChange={handleChange} className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500">
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">מספר מנות</label>
+                <input type="number" name="servings" value={formData.servings} onChange={handleChange} min="1" className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">זמן הכנה (דקות)</label>
+                <input type="number" name="prepTime" value={formData.prepTime} onChange={handleChange} min="0" className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">זמן בישול (דקות)</label>
+                <input type="number" name="cookTime" value={formData.cookTime} onChange={handleChange} min="0" className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">רמת קושי</label>
+                <select name="difficulty" value={formData.difficulty} onChange={handleChange} className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500">
+                  {difficulties.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">קישור לתמונה (URL)</label>
+                <input type="url" name="imageUrl" value={formData.imageUrl} onChange={handleChange} className="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500 text-left" dir="ltr" placeholder="https://..." />
+              </div>
+            </div>
+          </div>
+
+          {/* Ingredients */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-lime-800 border-b pb-2">מרכיבים</h2>
+            {formData.ingredients.map((ing, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <input type="text" placeholder="שם מרכיב" value={ing.name} onChange={(e) => handleIngredientChange(idx, 'name', e.target.value)} className="flex-1 p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+                <input type="number" step="0.1" placeholder="כמות" value={ing.amount} onChange={(e) => handleIngredientChange(idx, 'amount', e.target.value)} className="w-24 p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" />
+                <input type="text" placeholder="יחידה" value={ing.unit} onChange={(e) => handleIngredientChange(idx, 'unit', e.target.value)} className="w-28 p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500" list="units" />
+                <button type="button" onClick={() => setFormData({...formData, ingredients: formData.ingredients.filter((_, i) => i !== idx)})} className="p-3 text-red-500 hover:bg-red-50 rounded-lg">
+                  <Trash2 size={20} />
+                </button>
+              </div>
+            ))}
+            <datalist id="units">
+              <option value="גרם" />
+              <option value="ק״ג" />
+              <option value="מ״ל" />
+              <option value="ליטר" />
+              <option value="כוסות" />
+              <option value="כפות" />
+              <option value="כפיות" />
+              <option value="יחידות" />
+            </datalist>
+            <button type="button" onClick={() => setFormData({...formData, ingredients: [...formData.ingredients, {name: '', amount: 1, unit: 'יחידות'}]})} className="text-lime-600 font-medium hover:underline flex items-center">
+              <Plus size={16} className="ml-1" /> הוסף מרכיב
+            </button>
+          </div>
+
+          {/* Instructions */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-lime-800 border-b pb-2">אופן ההכנה</h2>
+            {formData.instructions.map((step, idx) => (
+              <div key={idx} className="flex gap-2 items-start">
+                <div className="mt-3 font-bold text-stone-400">{idx + 1}.</div>
+                <textarea rows="2" value={step} onChange={(e) => handleInstructionChange(idx, e.target.value)} className="flex-1 p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-lime-500"></textarea>
+                <button type="button" onClick={() => setFormData({...formData, instructions: formData.instructions.filter((_, i) => i !== idx)})} className="p-3 text-red-500 hover:bg-red-50 rounded-lg mt-1">
+                  <Trash2 size={20} />
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={() => setFormData({...formData, instructions: [...formData.instructions, '']})} className="text-lime-600 font-medium hover:underline flex items-center">
+              <Plus size={16} className="ml-1" /> הוסף שלב
+            </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-4 pt-6 border-t border-stone-200">
+            <button type="submit" className="flex-1 bg-lime-600 text-white p-4 rounded-lg font-bold text-lg hover:bg-lime-700 transition">
+              שמור מתכון
+            </button>
+            <button type="button" onClick={() => navigate(isEdit ? 'details' : 'recipes', selectedRecipeId)} className="px-6 py-4 bg-stone-100 text-stone-700 rounded-lg font-bold hover:bg-stone-200 transition">
+              ביטול
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
+
+  const renderShoppingList = () => {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in">
+        <h1 className="text-3xl font-bold text-stone-800 flex items-center">
+          <ShoppingCart className="ml-3 text-lime-600" size={32} />
+          רשימת קניות
+        </h1>
+        
+        {shoppingList.length === 0 ? (
+          <div className="text-center py-12 text-stone-500 bg-stone-100 rounded-xl border border-dashed border-stone-300">
+            <ShoppingCart size={48} className="mx-auto mb-4 opacity-50" />
+            <p className="text-lg">הרשימה ריקה. הוסיפו מצרכים מתוך המתכונים.</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+            {shoppingList.map((item) => (
+              <div key={item.id} className={`flex items-center justify-between p-4 border-b border-stone-100 last:border-0 transition ${item.checked ? 'bg-stone-50' : 'hover:bg-stone-50'}`}>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => toggleShoppingItem(item.id)} className={`w-6 h-6 rounded-md flex items-center justify-center border ${item.checked ? 'bg-lime-500 border-lime-500 text-white' : 'border-stone-300 text-transparent'}`}>
+                    <Check size={16} />
+                  </button>
+                  <span className={`text-lg ${item.checked ? 'line-through text-stone-400' : 'text-stone-800'}`}>
+                    {item.name}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className={`font-sans font-medium ${item.checked ? 'text-stone-400' : 'text-stone-600'}`} dir="ltr">
+                    {item.amount % 1 !== 0 ? item.amount.toFixed(1) : item.amount} {item.unit}
+                  </span>
+                  <button onClick={() => removeShoppingItem(item.id)} className="text-stone-300 hover:text-red-500 transition">
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {shoppingList.length > 0 && (
+          <button onClick={() => { if(window.confirm('לנקות את כל הרשימה?')) setShoppingList([]) }} className="text-red-500 font-medium hover:underline">
+            נקה רשימה
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const renderPlanner = () => {
+    const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+    return (
+      <div className="space-y-6 animate-in fade-in">
+        <h1 className="text-3xl font-bold text-stone-800 flex items-center">
+          <Calendar className="ml-3 text-purple-600" size={32} />
+          תכנון שבועי
+        </h1>
+        <p className="text-stone-600">גררו מתכונים או לחצו להוספה מהירה לימים השונים (תצוגה ראשונית).</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {days.map(day => (
+            <div key={day} className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 min-h-[150px]">
+              <h3 className="font-bold text-lg text-stone-800 mb-3 border-b pb-2">יום {day}</h3>
+              <div className="space-y-2 text-stone-400 text-sm italic text-center py-4">
+                 <Calendar size={24} className="mx-auto mb-2 opacity-30" />
+                 אין ארוחות מתוכננות
+                 <button onClick={() => navigate('recipes')} className="block mx-auto mt-2 text-lime-600 not-italic hover:underline">הוסף מתכון</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // --- Main Render ---
+  return (
+    <div className="min-h-screen bg-stone-50 font-sans text-stone-900" dir="rtl">
+      {/* Navbar Desktop & Mobile Top */}
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-lime-700 cursor-pointer" onClick={() => navigate('home')}>
+            <ChefHat size={32} strokeWidth={2.5} />
+            <span className="text-2xl font-black tracking-tight hidden sm:block">מתכוניאדה</span>
+          </div>
+          
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-6 font-medium text-stone-600">
+             <NavLink active={currentView === 'home'} onClick={() => navigate('home')} icon={<Home size={18}/>} text="בית" />
+             <NavLink active={currentView === 'recipes'} onClick={() => navigate('recipes')} icon={<BookOpen size={18}/>} text="מתכונים" />
+             <NavLink active={currentView === 'favorites'} onClick={() => navigate('favorites')} icon={<Heart size={18}/>} text="מועדפים" />
+             <NavLink active={currentView === 'planner'} onClick={() => navigate('planner')} icon={<Calendar size={18}/>} text="תכנון" />
+             <NavLink active={currentView === 'shopping'} onClick={() => navigate('shopping')} icon={<ShoppingCart size={18}/>} text="קניות" badge={shoppingList.filter(i=>!i.checked).length} />
+          </nav>
+
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('form')} className="hidden md:flex bg-lime-600 text-white px-4 py-2 rounded-full font-medium hover:bg-lime-700 transition items-center text-sm shadow-sm">
+               <Plus size={18} className="ml-1"/> חדש
+            </button>
+            <button className="md:hidden p-2 text-stone-600" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-white/95 backdrop-blur-sm pt-20 px-6 animate-in slide-in-from-top-4">
+           <nav className="flex flex-col gap-6 text-xl font-bold text-stone-800">
+             <MobileNavLink onClick={() => navigate('home')} icon={<Home />} text="דף הבית" />
+             <MobileNavLink onClick={() => navigate('recipes')} icon={<BookOpen />} text="כל המתכונים" />
+             <MobileNavLink onClick={() => navigate('favorites')} icon={<Heart />} text="מועדפים" />
+             <MobileNavLink onClick={() => navigate('planner')} icon={<Calendar />} text="תכנון שבועי" />
+             <MobileNavLink onClick={() => navigate('shopping')} icon={<ShoppingCart />} text="רשימת קניות" badge={shoppingList.filter(i=>!i.checked).length}/>
+             <div className="h-px bg-stone-200 my-2"></div>
+             <button onClick={() => navigate('form')} className="flex items-center text-lime-600">
+               <Plus className="ml-4" /> הוסף מתכון חדש
+             </button>
+           </nav>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <main className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-8">
+        {currentView === 'home' && renderDashboard()}
+        {currentView === 'recipes' && renderRecipeList()}
+        {currentView === 'favorites' && renderRecipeList(true)}
+        {currentView === 'details' && (
+          recipes.find(r => r.id === selectedRecipeId) ? (
+            <RecipeDetails 
+              key={selectedRecipeId}
+              recipe={recipes.find(r => r.id === selectedRecipeId)} 
+              isFav={favorites.includes(selectedRecipeId)} 
+              onToggleFavorite={() => toggleFavorite(selectedRecipeId)} 
+              onEdit={() => navigate('form', selectedRecipeId)}
+              onDelete={() => deleteRecipe(selectedRecipeId)}
+              onAddToCart={addToShoppingList}
+            />
+          ) : (
+            <div className="text-center py-12">המתכון לא נמצא</div>
+          )
+        )}
+        {currentView === 'form' && (
+          <RecipeForm 
+            key={selectedRecipeId || 'new'}
+            existingRecipe={selectedRecipeId ? recipes.find(r => r.id === selectedRecipeId) : null}
+            categories={categories}
+            difficulties={difficulties}
+            onSave={saveRecipe}
+            onCancel={() => navigate(selectedRecipeId ? 'details' : 'recipes', selectedRecipeId)}
+          />
+        )}
+        {currentView === 'shopping' && renderShoppingList()}
+        {currentView === 'planner' && renderPlanner()}
+      </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-stone-200 flex justify-around items-center h-16 px-2 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <BottomNavItem active={currentView === 'home'} onClick={() => navigate('home')} icon={<Home size={24}/>} label="בית" />
+        <BottomNavItem active={currentView === 'recipes'} onClick={() => navigate('recipes')} icon={<Search size={24}/>} label="חיפוש" />
+        <div className="relative -top-5">
+           <button onClick={() => navigate('form')} className="bg-orange-500 text-white p-4 rounded-full shadow-lg border-4 border-stone-50 hover:bg-orange-600 transition">
+             <Plus size={24} />
+           </button>
+        </div>
+        <BottomNavItem active={currentView === 'favorites'} onClick={() => navigate('favorites')} icon={<Heart size={24}/>} label="מועדפים" />
+        <BottomNavItem active={currentView === 'shopping'} onClick={() => navigate('shopping')} icon={<ShoppingCart size={24}/>} label="קניות" badge={shoppingList.filter(i=>!i.checked).length} />
+      </nav>
+    </div>
+  );
+}
+
+// --- Small Reusable Components ---
+
+const NavLink = ({ active, onClick, icon, text, badge }) => (
+  <button onClick={onClick} className={`flex items-center gap-1.5 transition relative ${active ? 'text-lime-700 font-bold' : 'hover:text-lime-600'}`}>
+    {icon} <span>{text}</span>
+    {badge > 0 && <span className="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{badge}</span>}
+  </button>
+);
+
+const MobileNavLink = ({ onClick, icon, text, badge }) => (
+  <button onClick={onClick} className="flex items-center">
+    <span className="ml-4 text-stone-500">{icon}</span> {text}
+    {badge > 0 && <span className="mr-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{badge}</span>}
+  </button>
+);
+
+const BottomNavItem = ({ active, onClick, icon, label, badge }) => (
+  <button onClick={onClick} className={`flex flex-col items-center justify-center w-16 relative ${active ? 'text-lime-700' : 'text-stone-400 hover:text-stone-600'}`}>
+    {icon}
+    <span className="text-[10px] font-medium mt-1">{label}</span>
+    {badge > 0 && <span className="absolute top-0 right-2 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold border border-white">{badge}</span>}
+  </button>
+);
+
+const QuickCard = ({ icon, title, count, onClick, color }) => (
+  <button onClick={onClick} className={`${color} p-4 rounded-xl flex flex-col items-center justify-center gap-2 hover:opacity-90 transition shadow-sm`}>
+    {icon}
+    <span className="font-bold">{title}</span>
+    <span className="text-sm bg-white/50 px-2 rounded-full">{count}</span>
+  </button>
+);
+
+const FilterChip = ({ label, active, onClick }) => (
+  <button onClick={onClick} className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition ${active ? 'bg-stone-800 text-white' : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'}`}>
+    {label}
+  </button>
+);
+
+const MetaItem = ({ icon, label, value }) => (
+  <div className="flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-lg text-sm text-stone-700">
+    <span className="text-stone-500">{icon}</span>
+    <span>{label}: <strong>{value}</strong></span>
+  </div>
+);
+
+const RecipeCard = ({ recipe, isFavorite, onToggleFavorite, onClick }) => (
+  <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition overflow-hidden group cursor-pointer border border-stone-100 flex flex-col" onClick={onClick}>
+    <div className="relative h-48 overflow-hidden">
+      <img src={recipe.imageUrl || 'https://images.unsplash.com/photo-1495195134817-a1a28078aca9?auto=format&fit=crop&q=80&w=400'} alt={recipe.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+      <button 
+        onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+        className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md shadow-sm transition ${isFavorite ? 'bg-red-50 text-red-500' : 'bg-black/20 text-white hover:bg-white hover:text-red-500'}`}
+      >
+        <Heart size={20} fill={isFavorite ? "currentColor" : "none"} />
+      </button>
+      <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-stone-700 flex items-center">
+        <Clock size={12} className="ml-1" /> {recipe.totalTime || (recipe.prepTime + recipe.cookTime)} דק'
+      </div>
+    </div>
+    <div className="p-4 flex flex-col flex-1">
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="text-xl font-bold text-stone-800 line-clamp-1">{recipe.title}</h3>
+      </div>
+      <p className="text-stone-500 text-sm line-clamp-2 mb-4 flex-1">{recipe.description}</p>
+      <div className="flex justify-between items-center mt-auto">
+        <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">{recipe.category}</span>
+        <span className="text-sm font-medium text-lime-700 flex items-center">
+           למתכון המלא <ChevronRight size={16} className="mr-0.5" />
+        </span>
+      </div>
+    </div>
+  </div>
+);
